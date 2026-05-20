@@ -1,101 +1,137 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useEffect, useState } from "react";
+import useSWR from "swr";
+import { fetcher } from "@/lib/fetcher";
+import { Card } from "@/components/ui/card";
+import { formatMoney } from "@/lib/format";
+import {
+  ReservationBanner,
+  type ReservationWithMember,
+} from "@/components/concierge/ReservationBanner";
+import { ProposalList } from "@/components/concierge/ProposalList";
+import { ItineraryBuilder } from "@/components/concierge/ItineraryBuilder";
+import { NewProposalButton } from "@/components/concierge/NewProposalButton";
+import { SendButton } from "@/components/concierge/SendButton";
+import { Badge } from "@/components/ui/badge";
+import type { Proposal } from "@/components/concierge/types";
+import type { Status } from "@/lib/state";
+
+const statusClass: Record<Status, string> = {
+  draft: "",
+  sent: "bg-amber-500 text-white hover:bg-amber-500/90",
+  approved: "bg-green-600 text-white hover:bg-green-600/90",
+  paid: "bg-brand text-brand-foreground hover:bg-brand/90",
+};
+
+export default function ConciergePage() {
+  const { data: reservation, error: reservationError } = useSWR<ReservationWithMember>(
+    "/api/reservations",
+    fetcher,
+  );
+  const { data: proposals, error: proposalsError } = useSWR<Proposal[]>(
+    "/api/proposals",
+    fetcher,
+  );
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Auto-select the most recent proposal once they load
+  useEffect(() => {
+    if (activeId || !proposals) return;
+    const first = proposals[0];
+    if (first) setActiveId(first.id);
+  }, [proposals, activeId]);
+
+  const active = proposals?.find((p) => p.id === activeId) ?? null;
+  const total = active?.items.reduce((s, i) => s + i.priceCents, 0) ?? 0;
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen bg-stone-50">
+      <header className="border-b bg-white px-8 py-6">
+        <div className="text-xs uppercase tracking-widest text-stone-500">
+          Exclusive Resorts
         </div>
+        <h1 className="font-serif text-2xl tracking-tight">Concierge Dashboard</h1>
+      </header>
+
+      {reservation && <ReservationBanner reservation={reservation} />}
+      {reservationError && (
+        <div className="bg-destructive/10 px-8 py-4 text-sm text-destructive">
+          Failed to load reservation: {reservationError.message}
+        </div>
+      )}
+
+      <main className="grid gap-6 px-8 py-6 lg:grid-cols-4">
+        <aside className="space-y-4 lg:col-span-1">
+          {reservation && (
+            <NewProposalButton
+              reservationId={reservation.id}
+              onCreated={(p) => setActiveId(p.id)}
+            />
+          )}
+          {proposalsError && (
+            <Card className="p-4 text-sm text-destructive">
+              Failed to load proposals.
+            </Card>
+          )}
+          <ProposalList
+            proposals={proposals ?? []}
+            activeId={activeId}
+            onSelect={setActiveId}
+          />
+        </aside>
+
+        <section className="lg:col-span-2">
+          {activeId ? (
+            <ItineraryBuilder
+              proposalId={activeId}
+              arrival={reservation?.arrivalDate}
+              departure={reservation?.departureDate}
+            />
+          ) : (
+            <Card className="p-12 text-center text-stone-500">
+              Select a proposal or create a new one.
+            </Card>
+          )}
+        </section>
+
+        <aside className="space-y-4 lg:col-span-1">
+          {active && (
+            <Card className="space-y-4 p-4">
+              <div>
+                <div className="text-xs uppercase tracking-widest text-stone-500">
+                  Status
+                </div>
+                <Badge className={`mt-2 capitalize ${statusClass[active.status]}`}>
+                  {active.status}
+                </Badge>
+              </div>
+              <div>
+                <div className="text-xs uppercase tracking-widest text-stone-500">
+                  Items
+                </div>
+                <div className="mt-1 text-sm">
+                  {active.items.length} {active.items.length === 1 ? "item" : "items"}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs uppercase tracking-widest text-stone-500">
+                  Total
+                </div>
+                <div className="mt-1 font-serif text-2xl tabular-nums">
+                  {formatMoney(total)}
+                </div>
+              </div>
+            </Card>
+          )}
+          {active && (
+            <SendButton
+              proposalId={active.id}
+              disabled={active.status !== "draft" || active.items.length === 0}
+            />
+          )}
+        </aside>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
