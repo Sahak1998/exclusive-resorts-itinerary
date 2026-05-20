@@ -6,14 +6,14 @@ export default defineConfig({
     environment: "node",
     include: ["tests/**/*.test.ts"],
     pool: "forks",
-    forks: { singleFork: true },
+    poolOptions: { forks: { singleFork: true } },
     fileParallelism: false,
     setupFiles: ["./tests/helpers/setup.ts"],
     hookTimeout: 60000,
     env: {
       DATABASE_URL: "file:./test.db",
     },
-  },
+  } as never,
   resolve: {
     alias: { "@": path.resolve(__dirname, "src") },
   },

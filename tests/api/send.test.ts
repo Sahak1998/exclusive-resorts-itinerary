@@ -27,7 +27,7 @@ describe("POST /api/proposals/[id]/send", () => {
     const updated = await prisma.proposal.findUnique({ where: { id: p.id }, include: { emails: true } });
     expect(updated?.status).toBe("sent");
     expect(updated?.emails).toHaveLength(1);
-    expect(updated?.emails[0].toEmail).toBe("james.whitfield@example.com");
+    expect(updated?.emails[0]?.toEmail).toBe("james.whitfield@example.com");
   });
 
   it("409 if not draft", async () => {
