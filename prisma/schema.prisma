@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Member {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  reservations Reservation[]
+}
+
+model Reservation {
+  id            String     @id @default(uuid())
+  memberId      String
+  member        Member     @relation(fields: [memberId], references: [id])
+  destination   String
+  villa         String
+  arrivalDate   DateTime
+  departureDate DateTime
+  proposals     Proposal[]
+}
+
+model Proposal {
+  id            String         @id @default(uuid())
+  reservationId String
+  reservation   Reservation    @relation(fields: [reservationId], references: [id])
+  status        String         @default("draft")
+  notes         String?
+  createdAt     DateTime       @default(now())
+  sentAt        DateTime?
+  approvedAt    DateTime?
+  paidAt        DateTime?
+  items         ProposalItem[]
+  emails        SentEmail[]
+}
+
+model ProposalItem {
+  id          String   @id @default(uuid())
+  proposalId  String
+  proposal    Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  category    String
+  title       String
+  description String
+  scheduledAt DateTime
+  priceCents  Int
+  sortOrder   Int      @default(0)
+}
+
+model SentEmail {
+  id          String   @id @default(uuid())
+  proposalId  String
+  proposal    Proposal @relation(fields: [proposalId], references: [id])
+  toEmail     String
+  sentAt      DateTime @default(now())
+  bodyPreview String
+}
