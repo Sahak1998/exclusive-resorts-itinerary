@@ -51,8 +51,8 @@ export function ProposalList({
             type="button"
             onClick={() => onSelect(p.id)}
             className={cn(
-              "w-full rounded-lg border bg-white p-3 text-left transition-colors hover:bg-stone-50",
-              isActive && "ring-2 ring-brand",
+              "w-full rounded-lg border border-stone-200 bg-white p-3 text-left transition-colors hover:bg-stone-50",
+              isActive && "border-brand bg-brand/5",
             )}
           >
             <div className="flex items-center justify-between">
