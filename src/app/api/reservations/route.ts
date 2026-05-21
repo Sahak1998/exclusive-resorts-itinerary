@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { reservationsService } from "@/services/reservations.service";
 
 export async function GET() {
-  const reservation = await prisma.reservation.findFirst({
-    orderBy: { arrivalDate: "asc" },
-    include: { member: true },
-  });
+  const reservation = await reservationsService.findEarliestWithMember();
   if (!reservation) return NextResponse.json({ error: "No reservation" }, { status: 404 });
   return NextResponse.json(reservation);
 }

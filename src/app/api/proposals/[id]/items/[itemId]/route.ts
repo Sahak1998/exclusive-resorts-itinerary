@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
 import { proposalItemPatchSchema } from "@/lib/schemas";
 import { assertDraft, parseRequest } from "@/lib/api";
+import { proposalItemsService } from "@/services/proposal-items.service";
 
 type Ctx = { params: { id: string; itemId: string } };
 
 export async function PATCH(req: Request, { params }: Ctx) {
-  const item = await prisma.proposalItem.findUnique({
-    where: { id: params.itemId },
-    include: { proposal: true },
-  });
+  const item = await proposalItemsService.findWithProposal(params.itemId);
   if (!item || item.proposalId !== params.id) {
     return NextResponse.json({ error: "Item not found" }, { status: 404 });
   }
@@ -19,24 +16,18 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const parsed = await parseRequest(req, proposalItemPatchSchema);
   if (!parsed.ok) return parsed.response;
 
-  const data: Record<string, unknown> = { ...parsed.data };
-  if (parsed.data.scheduledAt) data.scheduledAt = new Date(parsed.data.scheduledAt);
-
-  const updated = await prisma.proposalItem.update({ where: { id: params.itemId }, data });
+  const updated = await proposalItemsService.update(params.itemId, parsed.data);
   return NextResponse.json(updated);
 }
 
 export async function DELETE(_req: Request, { params }: Ctx) {
-  const item = await prisma.proposalItem.findUnique({
-    where: { id: params.itemId },
-    include: { proposal: true },
-  });
+  const item = await proposalItemsService.findWithProposal(params.itemId);
   if (!item || item.proposalId !== params.id) {
     return NextResponse.json({ error: "Item not found" }, { status: 404 });
   }
   const draftError = assertDraft(item.proposal.status);
   if (draftError) return draftError;
 
-  await prisma.proposalItem.delete({ where: { id: params.itemId } });
+  await proposalItemsService.delete(params.itemId);
   return new NextResponse(null, { status: 204 });
 }
