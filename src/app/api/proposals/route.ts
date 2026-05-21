@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { proposalCreateSchema } from "@/lib/schemas";
+import { parseRequest } from "@/lib/api";
 
 export async function GET() {
   const proposals = await prisma.proposal.findMany({
@@ -11,19 +12,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  let json: unknown;
-  try {
-    json = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
-  const parsed = proposalCreateSchema.safeParse(json);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Validation failed", issues: parsed.error.flatten() },
-      { status: 400 },
-    );
-  }
+  const parsed = await parseRequest(req, proposalCreateSchema);
+  if (!parsed.ok) return parsed.response;
+
   const reservation = await prisma.reservation.findUnique({
     where: { id: parsed.data.reservationId },
   });

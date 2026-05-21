@@ -9,3 +9,6 @@ export const formatTime = (d: Date | string) =>
   new Date(d).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
 export const formatDayKey = (d: Date | string) => new Date(d).toISOString().slice(0, 10);
+
+export const getTotalPrice = (items: ReadonlyArray<{ priceCents: number }>) =>
+  items.reduce((sum, i) => sum + i.priceCents, 0);

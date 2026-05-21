@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Pencil, Plus } from "lucide-react";
-import { mutate } from "swr";
 import { toast } from "sonner";
+import { invalidateProposals, parseErrorBody } from "@/lib/client";
 import {
   Dialog,
   DialogContent,
@@ -125,13 +125,9 @@ export function AddItemDialog({ proposalId, arrivalDate, departureDate, onAdded,
         headers: { "content-type": "application/json" },
         body: JSON.stringify(parsed.data),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error ?? `HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error(await parseErrorBody(res));
       toast.success(isEdit ? "Item updated" : "Item added");
-      await mutate(`/api/proposals/${proposalId}`);
-      await mutate("/api/proposals");
+      await invalidateProposals(proposalId);
       setOpen(false);
       onAdded?.();
     } catch (err) {

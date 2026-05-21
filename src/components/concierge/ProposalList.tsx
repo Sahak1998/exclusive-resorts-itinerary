@@ -3,22 +3,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { statusClass, statusVariant } from "@/lib/ui";
 import type { Proposal } from "./types";
-import type { Status } from "@/lib/state";
-
-const statusVariant: Record<Status, "default" | "secondary"> = {
-  draft: "secondary",
-  sent: "default",
-  approved: "default",
-  paid: "default",
-};
-
-const statusClass: Record<Status, string> = {
-  draft: "",
-  sent: "bg-amber-500 text-white hover:bg-amber-500/90",
-  approved: "bg-green-600 text-white hover:bg-green-600/90",
-  paid: "bg-brand text-brand-foreground hover:bg-brand/90",
-};
 
 export function ProposalList({
   proposals,

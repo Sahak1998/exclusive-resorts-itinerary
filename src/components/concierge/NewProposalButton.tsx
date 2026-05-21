@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { mutate } from "swr";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { invalidateProposals, parseErrorBody } from "@/lib/client";
 import type { Proposal } from "./types";
 
 export function NewProposalButton({
@@ -24,13 +24,10 @@ export function NewProposalButton({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ reservationId }),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error ?? `HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error(await parseErrorBody(res));
       const proposal: Proposal = await res.json();
       toast.success("New draft proposal created");
-      await mutate("/api/proposals");
+      await invalidateProposals();
       onCreated(proposal);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create proposal");

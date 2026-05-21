@@ -189,8 +189,11 @@ exclusive-resorts-itinerary/
 │       ├── fetcher.ts                       # SWR fetcher
 │       ├── schemas.ts                       # Zod (shared client + server)
 │       ├── categories.ts
-│       ├── state.ts                         # state machine
-│       └── format.ts                        # money / date helpers
+│       ├── state.ts                         # state machine + STATUS_TIMESTAMP map
+│       ├── format.ts                        # money / date helpers + getTotalPrice
+│       ├── ui.ts                            # status badge variant/class maps
+│       ├── api.ts                           # server: parseRequest, assertDraft
+│       └── client.ts                        # client: parseErrorBody, invalidateProposals
 ├── tests/
 │   ├── helpers/{db,setup}.ts
 │   ├── smoke.test.ts

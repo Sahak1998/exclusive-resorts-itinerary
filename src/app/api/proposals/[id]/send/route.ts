@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getTotalPrice } from "@/lib/format";
 
 type Ctx = { params: { id: string } };
 
@@ -17,7 +18,7 @@ export async function POST(_req: Request, { params }: Ctx) {
   }
 
   const now = new Date();
-  const total = proposal.items.reduce((sum, i) => sum + i.priceCents, 0);
+  const total = getTotalPrice(proposal.items);
   const bodyPreview = `Itinerary for ${proposal.reservation.member.name} at ${proposal.reservation.villa} — ${proposal.items.length} items, $${(total / 100).toFixed(0)}. Review: /proposal/${proposal.id}`;
 
   const updated = await prisma.$transaction(async (tx) => {

@@ -2,8 +2,15 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { proposalPatchSchema } from "@/lib/schemas";
 import { canTransition, type Status } from "@/lib/state";
+import { parseRequest } from "@/lib/api";
 
 type Ctx = { params: { id: string } };
+
+const STATUS_TIMESTAMP: Partial<Record<Status, "sentAt" | "approvedAt" | "paidAt">> = {
+  sent: "sentAt",
+  approved: "approvedAt",
+  paid: "paidAt",
+};
 
 export async function GET(_req: Request, { params }: Ctx) {
   const proposal = await prisma.proposal.findUnique({
@@ -21,12 +28,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const existing = await prisma.proposal.findUnique({ where: { id: params.id } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  let json: unknown;
-  try { json = await req.json(); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
-  const parsed = proposalPatchSchema.safeParse(json);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Validation failed", issues: parsed.error.flatten() }, { status: 400 });
-  }
+  const parsed = await parseRequest(req, proposalPatchSchema);
+  if (!parsed.ok) return parsed.response;
 
   const data: Record<string, unknown> = {};
   if (parsed.data.notes !== undefined) data.notes = parsed.data.notes;
@@ -39,10 +42,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
       );
     }
     data.status = parsed.data.status;
-    const now = new Date();
-    if (parsed.data.status === "sent") data.sentAt = now;
-    if (parsed.data.status === "approved") data.approvedAt = now;
-    if (parsed.data.status === "paid") data.paidAt = now;
+    const stampField = STATUS_TIMESTAMP[parsed.data.status];
+    if (stampField) data[stampField] = new Date();
   }
 
   const updated = await prisma.proposal.update({

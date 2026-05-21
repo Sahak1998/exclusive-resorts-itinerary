@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
-import { mutate } from "swr";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDateLong, formatMoney, formatTime } from "@/lib/format";
+import { invalidateProposals, parseErrorBody } from "@/lib/client";
 import { CATEGORIES } from "@/lib/categories";
 import { AddItemDialog } from "./AddItemDialog";
 import type { ProposalItem } from "./types";
@@ -35,13 +35,9 @@ export function ItemRow({
       const res = await fetch(`/api/proposals/${proposalId}/items/${item.id}`, {
         method: "DELETE",
       });
-      if (!res.ok && res.status !== 204) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error ?? `HTTP ${res.status}`);
-      }
+      if (!res.ok && res.status !== 204) throw new Error(await parseErrorBody(res));
       toast.success("Item removed");
-      await mutate(`/api/proposals/${proposalId}`);
-      await mutate("/api/proposals");
+      await invalidateProposals(proposalId);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete");
     } finally {

@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, getTotalPrice } from "@/lib/format";
+import { parseErrorBody } from "@/lib/client";
 import type { Status } from "@/lib/state";
 import type { MemberProposal } from "./types";
 
@@ -16,7 +17,7 @@ export function StickyFooter({
   onChange: () => void;
 }) {
   const [pending, setPending] = useState<Status | null>(null);
-  const total = proposal.items.reduce((sum, i) => sum + i.priceCents, 0);
+  const total = getTotalPrice(proposal.items);
 
   const transition = async (to: Status) => {
     setPending(to);
@@ -26,10 +27,7 @@ export function StickyFooter({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ status: to }),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error ?? `HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error(await parseErrorBody(res));
       onChange();
       if (to === "approved") toast.success("Itinerary approved");
       if (to === "paid") toast.success("Payment confirmed");

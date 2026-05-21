@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import useSWR, { mutate } from "swr";
+import useSWR from "swr";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { fetcher } from "@/lib/fetcher";
-import { formatDateLong, formatMoney } from "@/lib/format";
+import { formatDateLong, formatMoney, getTotalPrice } from "@/lib/format";
+import { invalidateProposals, parseErrorBody } from "@/lib/client";
 import { AddItemDialog } from "./AddItemDialog";
 import { ItemRow } from "./ItemRow";
 import type { Proposal } from "./types";
@@ -58,7 +59,7 @@ export function ItineraryBuilder({
   const departureDate =
     proposal.reservation.departureDate ?? departure ?? new Date().toISOString();
   const isDraft = proposal.status === "draft";
-  const total = proposal.items.reduce((s, i) => s + i.priceCents, 0);
+  const total = getTotalPrice(proposal.items);
 
   const saveNotes = async () => {
     if (!isDraft) return;
@@ -70,12 +71,8 @@ export function ItineraryBuilder({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ notes }),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error ?? `HTTP ${res.status}`);
-      }
-      await mutate(`/api/proposals/${proposalId}`);
-      await mutate("/api/proposals");
+      if (!res.ok) throw new Error(await parseErrorBody(res));
+      await invalidateProposals(proposalId);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save notes");
     } finally {

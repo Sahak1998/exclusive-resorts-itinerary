@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { fetcher } from "@/lib/fetcher";
 import { Card } from "@/components/ui/card";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, getTotalPrice } from "@/lib/format";
+import { statusClass } from "@/lib/ui";
 import {
   ReservationBanner,
   type ReservationWithMember,
@@ -15,14 +16,6 @@ import { NewProposalButton } from "@/components/concierge/NewProposalButton";
 import { SendButton } from "@/components/concierge/SendButton";
 import { Badge } from "@/components/ui/badge";
 import type { Proposal } from "@/components/concierge/types";
-import type { Status } from "@/lib/state";
-
-const statusClass: Record<Status, string> = {
-  draft: "",
-  sent: "bg-amber-500 text-white hover:bg-amber-500/90",
-  approved: "bg-green-600 text-white hover:bg-green-600/90",
-  paid: "bg-brand text-brand-foreground hover:bg-brand/90",
-};
 
 export default function ConciergePage() {
   const { data: reservation, error: reservationError } = useSWR<ReservationWithMember>(
@@ -43,7 +36,7 @@ export default function ConciergePage() {
   }, [proposals, activeId]);
 
   const active = proposals?.find((p) => p.id === activeId) ?? null;
-  const total = active?.items.reduce((s, i) => s + i.priceCents, 0) ?? 0;
+  const total = active ? getTotalPrice(active.items) : 0;
 
   return (
     <div className="min-h-screen bg-stone-50">

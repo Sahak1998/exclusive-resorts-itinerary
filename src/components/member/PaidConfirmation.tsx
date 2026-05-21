@@ -2,12 +2,12 @@
 
 import { motion } from "framer-motion";
 import { CheckCircle2 } from "lucide-react";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, getTotalPrice } from "@/lib/format";
 import type { MemberProposal } from "./types";
 
 export function PaidConfirmation({ proposal }: { proposal: MemberProposal }) {
   const firstName = proposal.reservation.member.name.split(" ")[0];
-  const total = proposal.items.reduce((sum, i) => sum + i.priceCents, 0);
+  const total = getTotalPrice(proposal.items);
   const count = proposal.items.length;
 
   return (

@@ -1,22 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { proposalItemInputSchema } from "@/lib/schemas";
+import { assertDraft, parseRequest } from "@/lib/api";
 
 type Ctx = { params: { id: string } };
 
 export async function POST(req: Request, { params }: Ctx) {
   const proposal = await prisma.proposal.findUnique({ where: { id: params.id } });
   if (!proposal) return NextResponse.json({ error: "Proposal not found" }, { status: 404 });
-  if (proposal.status !== "draft") {
-    return NextResponse.json({ error: "Can only edit items on a draft proposal" }, { status: 409 });
-  }
+  const draftError = assertDraft(proposal.status);
+  if (draftError) return draftError;
 
-  let json: unknown;
-  try { json = await req.json(); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
-  const parsed = proposalItemInputSchema.safeParse(json);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Validation failed", issues: parsed.error.flatten() }, { status: 400 });
-  }
+  const parsed = await parseRequest(req, proposalItemInputSchema);
+  if (!parsed.ok) return parsed.response;
 
   const last = await prisma.proposalItem.findFirst({
     where: { proposalId: params.id },

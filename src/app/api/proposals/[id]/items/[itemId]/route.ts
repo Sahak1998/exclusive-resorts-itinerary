@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { proposalItemPatchSchema } from "@/lib/schemas";
+import { assertDraft, parseRequest } from "@/lib/api";
 
 type Ctx = { params: { id: string; itemId: string } };
 
@@ -12,16 +13,11 @@ export async function PATCH(req: Request, { params }: Ctx) {
   if (!item || item.proposalId !== params.id) {
     return NextResponse.json({ error: "Item not found" }, { status: 404 });
   }
-  if (item.proposal.status !== "draft") {
-    return NextResponse.json({ error: "Can only edit items on a draft proposal" }, { status: 409 });
-  }
+  const draftError = assertDraft(item.proposal.status);
+  if (draftError) return draftError;
 
-  let json: unknown;
-  try { json = await req.json(); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
-  const parsed = proposalItemPatchSchema.safeParse(json);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Validation failed", issues: parsed.error.flatten() }, { status: 400 });
-  }
+  const parsed = await parseRequest(req, proposalItemPatchSchema);
+  if (!parsed.ok) return parsed.response;
 
   const data: Record<string, unknown> = { ...parsed.data };
   if (parsed.data.scheduledAt) data.scheduledAt = new Date(parsed.data.scheduledAt);
@@ -38,9 +34,9 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   if (!item || item.proposalId !== params.id) {
     return NextResponse.json({ error: "Item not found" }, { status: 404 });
   }
-  if (item.proposal.status !== "draft") {
-    return NextResponse.json({ error: "Can only edit items on a draft proposal" }, { status: 409 });
-  }
+  const draftError = assertDraft(item.proposal.status);
+  if (draftError) return draftError;
+
   await prisma.proposalItem.delete({ where: { id: params.itemId } });
   return new NextResponse(null, { status: 204 });
 }

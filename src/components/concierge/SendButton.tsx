@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Send } from "lucide-react";
-import { mutate } from "swr";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { invalidateProposals, parseErrorBody } from "@/lib/client";
 
 export function SendButton({
   proposalId,
@@ -19,10 +19,7 @@ export function SendButton({
     setSending(true);
     try {
       const res = await fetch(`/api/proposals/${proposalId}/send`, { method: "POST" });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error ?? `HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error(await parseErrorBody(res));
       const shareUrl =
         typeof window !== "undefined"
           ? `${window.location.origin}/proposal/${proposalId}`
@@ -35,8 +32,7 @@ export function SendButton({
         },
         duration: 10_000,
       });
-      await mutate(`/api/proposals/${proposalId}`);
-      await mutate("/api/proposals");
+      await invalidateProposals(proposalId);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to send");
     } finally {
