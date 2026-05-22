@@ -192,6 +192,7 @@ exclusive-resorts-itinerary/
 │   │   ├── state.ts                         # state machine
 │   │   ├── format.ts                        # money / date helpers + getTotalPrice
 │   │   ├── ui.ts                            # status badge variant/class maps
+│   │   ├── utils.ts                         # cn() class-name merge helper (shadcn)
 │   │   ├── api.ts                           # server: parseRequest, assertDraft
 │   │   └── client.ts                        # client: parseErrorBody, invalidateProposals
 │   └── services/                            # DB access layer (only place prisma is imported)
